@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String          @id @default(cuid())
+  name        String
+  email       String          @unique
+  password    String
+  role        Role            @default(USER)
+  image       String?
+  provider    String?
+  providerId  String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  projects    Project[]
+  memberships ProjectMember[]
+}
+
+model Project {
+  id            String          @id @default(cuid())
+  name          String
+  description   String?
+  ownerId       String
+  isFavorite    Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  workspacePath String          @unique
+  template      String          @default("basic")
+  conversations Conversation[]
+  files         File[]
+  folders       Folder[]
+  owner         User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members       ProjectMember[]
+}
+
+model ProjectMember {
+  id        String      @id @default(cuid())
+  projectId String
+  userId    String
+  role      ProjectRole @default(EDITOR)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+}
+
+model Conversation {
+  id        String      @id @default(cuid())
+  projectId String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  messages  AiMessage[]
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model AiMessage {
+  id             String       @id @default(cuid())
+  conversationId String
+  role           String
+  content        String
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+model Folder {
+  id        String   @id @default(cuid())
+  name      String
+  projectId String
+  parentId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  files     File[]
+  parent    Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Folder[] @relation("FolderHierarchy")
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model File {
+  id        String   @id @default(cuid())
+  name      String
+  extension String
+  language  String
+  content   String
+  projectId String
+  folderId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  folder    Folder?  @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum ProjectRole {
+  VIEWER
+  EDITOR
+}

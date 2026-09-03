@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+
+server/workspaces/
+server/*.log
+server/cookies.txt
