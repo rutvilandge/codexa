@@ -1,7 +1,11 @@
 import { Response } from "express";
 import { prisma } from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth.middleware";
-import { createProjectWorkspace, getProjectWorkspacePath, removeProjectWorkspace } from "../services/project-workspace.service";
+import {
+  createProjectWorkspace,
+  getProjectWorkspacePath,
+  removeProjectWorkspace,
+} from "../services/project-workspace.service";
 import { requireProjectAccess } from "../services/project-access.service";
 
 // =======================
@@ -25,16 +29,34 @@ export const createProject = async (
       });
     }
 
-    const selectedTemplate = template === "react" ? "react" : "basic";
+    const selectedTemplate =
+      template === "react" ? "react" : "basic";
+
     const projectId = crypto.randomUUID();
-    const workspacePath = getProjectWorkspacePath(req.user!.id, projectId);
-    await createProjectWorkspace(workspacePath, selectedTemplate);
+
+    const workspacePath = getProjectWorkspacePath(
+      req.user!.id,
+      projectId
+    );
+
+    // Vercel uses a serverless filesystem.
+    // Do not create persistent workspaces on Vercel.
+    if (!process.env.VERCEL) {
+      await createProjectWorkspace(
+        workspacePath,
+        selectedTemplate
+      );
+    }
 
     const project = await prisma.project.create({
       data: {
         id: projectId,
         name: name.trim(),
-        description: typeof description === "string" && description.trim() ? description.trim() : null,
+        description:
+          typeof description === "string" &&
+          description.trim()
+            ? description.trim()
+            : null,
         ownerId: req.user!.id,
         workspacePath,
         template: selectedTemplate,
@@ -65,7 +87,20 @@ export const getProjects = async (
 ) => {
   try {
     const projects = await prisma.project.findMany({
-      where: { OR: [{ ownerId: req.user!.id }, { members: { some: { userId: req.user!.id } } }] },
+      where: {
+        OR: [
+          {
+            ownerId: req.user!.id,
+          },
+          {
+            members: {
+              some: {
+                userId: req.user!.id,
+              },
+            },
+          },
+        ],
+      },
       orderBy: {
         updatedAt: "desc",
       },
@@ -96,7 +131,12 @@ export const getProject = async (
     const id = req.params.id as string;
 
     await requireProjectAccess(id, req.user!.id);
-    const project = await prisma.project.findUnique({ where: { id } });
+
+    const project = await prisma.project.findUnique({
+      where: {
+        id,
+      },
+    });
 
     if (!project) {
       return res.status(404).json({
@@ -135,8 +175,14 @@ export const updateProject = async (
       isFavorite?: unknown;
     };
 
-    if (name !== undefined && (typeof name !== "string" || !name.trim())) {
-      return res.status(400).json({ success: false, message: "Project name cannot be empty" });
+    if (
+      name !== undefined &&
+      (typeof name !== "string" || !name.trim())
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Project name cannot be empty",
+      });
     }
 
     const existingProject = await prisma.project.findFirst({
@@ -158,9 +204,20 @@ export const updateProject = async (
         id,
       },
       data: {
-        ...(typeof name === "string" ? { name: name.trim() } : {}),
-        ...(typeof description === "string" ? { description: description.trim() || null } : {}),
-        ...(typeof isFavorite === "boolean" ? { isFavorite } : {}),
+        ...(typeof name === "string"
+          ? { name: name.trim() }
+          : {}),
+
+        ...(typeof description === "string"
+          ? {
+              description:
+                description.trim() || null,
+            }
+          : {}),
+
+        ...(typeof isFavorite === "boolean"
+          ? { isFavorite }
+          : {}),
       },
     });
 
@@ -208,9 +265,19 @@ export const deleteProject = async (
         id,
       },
     });
-    await removeProjectWorkspace(existingProject.workspacePath).catch((error) => {
-      console.error("Failed to remove deleted project workspace", error);
-    });
+
+    // Local filesystem cleanup only.
+    // Vercel does not have persistent project workspaces.
+    if (!process.env.VERCEL) {
+      await removeProjectWorkspace(
+        existingProject.workspacePath
+      ).catch((error) => {
+        console.error(
+          "Failed to remove deleted project workspace",
+          error
+        );
+      });
+    }
 
     return res.status(200).json({
       success: true,
