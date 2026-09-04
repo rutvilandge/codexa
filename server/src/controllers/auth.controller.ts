@@ -1,167 +1,237 @@
 import type { Request, Response } from "express";
-import type { AuthRequest } from "../middleware/auth.middleware";
+
+import { AuthRequest } from "../middleware/auth.middleware";
+
 import jwt from "jsonwebtoken";
+
 import { prisma } from "../lib/prisma";
-import { authenticateUser, DuplicateEmailError, registerUser } from "../services/auth.service";
+
+import {
+  authenticateUser,
+  DuplicateEmailError,
+  registerUser,
+} from "../services/auth.service";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const COOKIE_OPTIONS = {
   httpOnly: true,
-    sameSite: "lax" as const,
-      secure: process.env.NODE_ENV === "production",
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        };
+  sameSite:
+    process.env.NODE_ENV === "production"
+      ? ("none" as const)
+      : ("lax" as const),
+  secure: process.env.NODE_ENV === "production",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
 
-        const createToken = (userId: string) => jwt.sign({ id: userId }, process.env.JWT_SECRET!, { expiresIn: "7d" });
+const createToken = (userId: string) =>
+  jwt.sign({ id: userId }, process.env.JWT_SECRET!, {
+    expiresIn: "7d",
+  });
 
-        export const register = async (req: Request, res: Response) => {
-          try {
-              const { name, email, password } = req.body as {
-                    name?: unknown;
-                          email?: unknown;
-                                password?: unknown;
-                                    };
+export const register = async (req: Request, res: Response) => {
+  try {
+    const { name, email, password } = req.body as {
+      name?: unknown;
+      email?: unknown;
+      password?: unknown;
+    };
 
-                                        if (
-                                              typeof name !== "string" ||
-                                                    !name.trim() ||
-                                                          typeof email !== "string" ||
-                                                                !EMAIL_PATTERN.test(email) ||
-                                                                      typeof password !== "string" ||
-                                                                            password.length < 8
-                                                                                ) {
-                                                                                      return res.status(400).json({
-                                                                                              success: false,
-                                                                                                      message: "Enter a name, a valid email, and a password of at least 8 characters",
-                                                                                                            });
-                                                                                                                }
+    if (
+      typeof name !== "string" ||
+      !name.trim() ||
+      typeof email !== "string" ||
+      !EMAIL_PATTERN.test(email) ||
+      typeof password !== "string" ||
+      password.length < 8
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Enter a name, a valid email, and a password of at least 8 characters",
+      });
+    }
 
-                                                                                                                    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = email.trim().toLowerCase();
 
-                                                                                                                        const user = await registerUser(name.trim(), normalizedEmail, password);
-                                                                                                                            const token = createToken(user.id);
-                                                                                                                                res.cookie("token", token, COOKIE_OPTIONS);
+    const user = await registerUser(
+      name.trim(),
+      normalizedEmail,
+      password
+    );
 
-                                                                                                                                    return res.status(201).json({
-                                                                                                                                          success: true,
-                                                                                                                                                message: "Account created successfully",
-                                                                                                                                                      token,
-                                                                                                                                                            user,
-                                                                                                                                                                });
-                                                                                                                                                                  } catch (error) {
-                                                                                                                                                                      if (error instanceof DuplicateEmailError) {
-                                                                                                                                                                            return res.status(409).json({ success: false, message: "Email already exists" });
-                                                                                                                                                                                }
-                                                                                                                                                                                    console.error("Unable to register user", error);
+    const token = createToken(user.id);
 
-                                                                                                                                                                                        res.status(500).json({
-                                                                                                                                                                                              success: false,
-                                                                                                                                                                                                    message: "Server Error",
-                                                                                                                                                                                                        });
-                                                                                                                                                                                                          }
-                                                                                                                                                                                                          };
+    res.cookie("token", token, COOKIE_OPTIONS);
 
-                                                                                                                                                                                                          export const login = async (req: Request, res: Response) => {
-                                                                                                                                                                                                            try {
-                                                                                                                                                                                                                const { email, password } = req.body as { email?: unknown; password?: unknown };
+    return res.status(201).json({
+      success: true,
+      message: "Account created successfully",
+      token,
+      user,
+    });
+  } catch (error) {
+    if (error instanceof DuplicateEmailError) {
+      return res.status(409).json({
+        success: false,
+        message: "Email already exists",
+      });
+    }
 
-                                                                                                                                                                                                                    if (
-                                                                                                                                                                                                                          typeof email !== "string" ||
-                                                                                                                                                                                                                                !EMAIL_PATTERN.test(email) ||
-                                                                                                                                                                                                                                      typeof password !== "string" ||
-                                                                                                                                                                                                                                            !password
-                                                                                                                                                                                                                                                ) {
-                                                                                                                                                                                                                                                      return res.status(400).json({
-                                                                                                                                                                                                                                                              success: false,
-                                                                                                                                                                                                                                                                      message: "Enter a valid email and password",
-                                                                                                                                                                                                                                                                            });
-                                                                                                                                                                                                                                                                                }
+    console.error("Unable to register user", error);
 
-                                                                                                                                                                                                                                                                                    const user = await authenticateUser(email.trim().toLowerCase(), password);
-                                                                                                                                                                                                                                                                                        if (!user) {
-                                                                                                                                                                                                                                                                                              return res.status(400).json({
-                                                                                                                                                                                                                                                                                                      success: false,
-                                                                                                                                                                                                                                                                                                              message: "Invalid email or password",
-                                                                                                                                                                                                                                                                                                                    });
-                                                                                                                                                                                                                                                                                                                        }
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
 
-                                                                                                                                                                                                                                                                                                                            const token = createToken(user.id);
+export const login = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body as {
+      email?: unknown;
+      password?: unknown;
+    };
 
-                                                                                                                                                                                                                                                                                                                                res.cookie("token", token, COOKIE_OPTIONS);
+    if (
+      typeof email !== "string" ||
+      !EMAIL_PATTERN.test(email) ||
+      typeof password !== "string" ||
+      !password
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Enter a valid email and password",
+      });
+    }
 
-                                                                                                                                                                                                                                                                                                                                    return res.json({
-                                                                                                                                                                                                                                                                                                                                          success: true,
-                                                                                                                                                                                                                                                                                                                                                message: "Login successful",
-                                                                                                                                                                                                                                                                                                                                                      token,
-                                                                                                                                                                                                                                                                                                                                                            user: {
-                                                                                                                                                                                                                                                                                                                                                                    id: user.id,
-                                                                                                                                                                                                                                                                                                                                                                            name: user.name,
-                                                                                                                                                                                                                                                                                                                                                                                    email: user.email,
-                                                                                                                                                                                                                                                                                                                                                                                          },
-                                                                                                                                                                                                                                                                                                                                                                                              });
-                                                                                                                                                                                                                                                                                                                                                                                                } catch (error) {
-                                                                                                                                                                                                                                                                                                                                                                                                    console.log(error);
+    const user = await authenticateUser(
+      email.trim().toLowerCase(),
+      password
+    );
 
-                                                                                                                                                                                                                                                                                                                                                                                                        res.status(500).json({
-                                                                                                                                                                                                                                                                                                                                                                                                              success: false,
-                                                                                                                                                                                                                                                                                                                                                                                                                    message: "Server Error",
-                                                                                                                                                                                                                                                                                                                                                                                                                        });
-                                                                                                                                                                                                                                                                                                                                                                                                                          }
-                                                                                                                                                                                                                                                                                                                                                                                                                          };
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
 
-                                                                                                                                                                                                                                                                                                                                                                                                                          export const getMe = async (req: AuthRequest, res: Response) => {
-                                                                                                                                                                                                                                                                                                                                                                                                                            try {
-                                                                                                                                                                                                                                                                                                                                                                                                                                const user = await prisma.user.findUnique({
-                                                                                                                                                                                                                                                                                                                                                                                                                                      where: {
-                                                                                                                                                                                                                                                                                                                                                                                                                                              id: req.user!.id,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                    },
-                                                                                                                                                                                                                                                                                                                                                                                                                                                          select: {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                  id: true,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                          name: true,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  email: true,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          role: true,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  image: true,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          createdAt: true,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                },
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    });
+    const token = createToken(user.id);
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        if (!user) {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              return res.status(404).json({
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      success: false,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              message: "User not found",
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    });
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        }
+    res.cookie("token", token, COOKIE_OPTIONS);
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            res.json({
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  success: true,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        user,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            });
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              } catch (error) {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  console.log(error);
+    return res.json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    console.log(error);
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      res.status(500).json({
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            success: false,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  message: "Server Error",
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      });
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        };
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        export const logout = (_req: Request, res: Response) => {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          res.clearCookie("token", {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              httpOnly: true,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  sameSite: "lax",
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      secure: process.env.NODE_ENV === "production",
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        });
+export const getMe = async (req: AuthRequest, res: Response) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: {
+        id: req.user!.id,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        image: true,
+        createdAt: true,
+      },
+    });
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          return res.json({ success: true, message: "Logged out successfully" });
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          };
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          export const updateProfile = async (req: AuthRequest, res: Response) => {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            const { name } = req.body as { name?: unknown };
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              if (typeof name !== "string" || !name.trim() || name.trim().length > 100) return res.status(400).json({ message: "A valid name is required" });
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                try {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    const user = await prisma.user.update({ where: { id: req.user!.id }, data: { name: name.trim() }, select: { id: true, name: true, email: true, role: true, image: true } });
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        return res.json({ user });
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          } catch { return res.status(500).json({ message: "Unable to update profile" }); }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          };
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+    return res.json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
+
+export const logout = (_req: Request, res: Response) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    sameSite:
+      process.env.NODE_ENV === "production"
+        ? ("none" as const)
+        : ("lax" as const),
+    secure: process.env.NODE_ENV === "production",
+  });
+
+  return res.json({
+    success: true,
+    message: "Logged out successfully",
+  });
+};
+
+export const updateProfile = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  const { name } = req.body as { name?: unknown };
+
+  if (
+    typeof name !== "string" ||
+    !name.trim() ||
+    name.trim().length > 100
+  ) {
+    return res.status(400).json({
+      message: "A valid name is required",
+    });
+  }
+
+  try {
+    const user = await prisma.user.update({
+      where: {
+        id: req.user!.id,
+      },
+      data: {
+        name: name.trim(),
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        image: true,
+      },
+    });
+
+    return res.json({ user });
+  } catch {
+    return res.status(500).json({
+      message: "Unable to update profile",
+    });
+  }
+};
