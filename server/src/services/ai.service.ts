@@ -135,13 +135,17 @@ export async function getProjectAiResponse(input: {
           role: "system",
           content: `${SYSTEM_PROMPT}\n\n${context}`,
         },
-        ...history.map((item) => ({
-          role:
-            item.role === "assistant"
-              ? ("assistant" as const)
-              : ("user" as const),
-          content: item.content,
-        })),
+
+        ...history.map(
+          (item: (typeof history)[number]) => ({
+            role:
+              item.role === "assistant"
+                ? ("assistant" as const)
+                : ("user" as const),
+            content: item.content,
+          })
+        ),
+
         {
           role: "user",
           content: input.message,
