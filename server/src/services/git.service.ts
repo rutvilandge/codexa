@@ -12,7 +12,7 @@ type SnapshotFile = {
 async function getRepository(projectId: string, userId: string) {
   await requireProjectAccess(projectId, userId);
 
-  const repository = await prisma.gitRepository.findUnique({
+  return prisma.gitRepository.findUnique({
     where: { projectId },
     include: {
       branches: {
@@ -20,6 +20,10 @@ async function getRepository(projectId: string, userId: string) {
       },
     },
   });
+}
+
+async function requireRepository(projectId: string, userId: string) {
+  const repository = await getRepository(projectId, userId);
 
   if (!repository) {
     throw new Error("Git repository is not initialized");
@@ -104,19 +108,48 @@ export async function getGitSummary(
   projectId: string,
   ownerId: string
 ) {
-  const repository = await getRepository(projectId, ownerId);
+  await requireProjectAccess(projectId, ownerId);
+
+  const repository = await prisma.gitRepository.findUnique({
+    where: { projectId },
+    include: {
+      branches: {
+        orderBy: { name: "asc" },
+      },
+      commits: {
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 10,
+      },
+    },
+  });
+
+  // No repository yet = valid uninitialized Git state.
+  if (!repository) {
+    return {
+      initialized: false,
+      branch: null,
+      status: [],
+      history: [],
+      branches: [],
+    };
+  }
 
   const currentFiles = await getCurrentFiles(projectId);
 
   const activeBranch =
-    repository.branches.find((branch) => branch.name === "main") ??
-    repository.branches[0];
+    repository.branches.find(
+      (branch) => branch.name === "main"
+    ) ?? repository.branches[0];
 
   if (!activeBranch) {
     return {
       initialized: true,
       branch: null,
-      status: currentFiles.map((file) => `?? ${file.path}`),
+      status: currentFiles.map(
+        (file) => `?? ${file.path}`
+      ),
       history: [],
       branches: [],
     };
@@ -153,23 +186,21 @@ export async function getGitSummary(
     }
   }
 
-  const history = latestCommit
-    ? await prisma.gitCommit.findMany({
-        where: {
-          repositoryId: repository.id,
-          branchId: activeBranch.id,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-        take: 10,
-        select: {
-          hash: true,
-          message: true,
-          createdAt: true,
-        },
-      })
-    : [];
+  const history = await prisma.gitCommit.findMany({
+    where: {
+      repositoryId: repository.id,
+      branchId: activeBranch.id,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 10,
+    select: {
+      hash: true,
+      message: true,
+      createdAt: true,
+    },
+  });
 
   return {
     initialized: true,
@@ -218,7 +249,10 @@ export async function createBranch(
 ) {
   await requireProjectAccess(projectId, ownerId, true);
 
-  const repository = await getRepository(projectId, ownerId);
+  const repository = await requireRepository(
+    projectId,
+    ownerId
+  );
 
   const existing = await prisma.gitBranch.findUnique({
     where: {
@@ -248,7 +282,10 @@ export async function switchBranch(
 ) {
   await requireProjectAccess(projectId, ownerId, true);
 
-  const repository = await getRepository(projectId, ownerId);
+  const repository = await requireRepository(
+    projectId,
+    ownerId
+  );
 
   const branch = await prisma.gitBranch.findUnique({
     where: {
@@ -275,7 +312,10 @@ export async function commitChanges(
 ) {
   await requireProjectAccess(projectId, ownerId, true);
 
-  const repository = await getRepository(projectId, ownerId);
+  const repository = await requireRepository(
+    projectId,
+    ownerId
+  );
 
   const branch =
     repository.branches.find(
@@ -372,7 +412,10 @@ export async function mergeBranch(
 ) {
   await requireProjectAccess(projectId, ownerId, true);
 
-  const repository = await getRepository(projectId, ownerId);
+  const repository = await requireRepository(
+    projectId,
+    ownerId
+  );
 
   const sourceBranch = await prisma.gitBranch.findUnique({
     where: {
@@ -424,7 +467,11 @@ export async function getFileHistory(
   ownerId: string,
   filePath: string
 ) {
-  const repository = await getRepository(projectId, ownerId);
+  const repository = await requireRepository(
+    projectId,
+    ownerId
+  );
+
   const safePath = safeFilePath(filePath);
 
   const commits = await prisma.gitCommit.findMany({
@@ -464,7 +511,11 @@ export async function getFileDiff(
   ownerId: string,
   filePath: string
 ) {
-  const repository = await getRepository(projectId, ownerId);
+  const repository = await requireRepository(
+    projectId,
+    ownerId
+  );
+
   const safePath = safeFilePath(filePath);
 
   const commits = await prisma.gitCommit.findMany({
