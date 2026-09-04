@@ -1,6 +1,13 @@
-# Codexa
+# 🚀 Codexa
+
+### 💻 AI-Powered Cloud Coding Workspace
 
 > **Codexa** is an AI-powered coding workspace designed to bring project files, a browser-based code editor, terminal execution, Git workflows, project management, and AI coding assistance into one developer workspace.
+
+
+### 🌐 Live Demo
+
+**[🚀 Open Codexa](https://codexa-one-blue.vercel.app)**
 
 ---
 
