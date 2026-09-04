@@ -1,48 +1,102 @@
-import fs from "fs/promises";
-import path from "path";
+import { prisma } from "../lib/prisma";
 import { WorkspaceNode } from "../types/workspace.types";
 
-const IGNORE = new Set([
-  ".git",
-  "node_modules",
-  "dist",
-  "build",
-  ".next",
-]);
+type FolderRecord = {
+  id: string;
+  name: string;
+  parentId: string | null;
+};
+
+type FileRecord = {
+  name: string;
+  folderId: string | null;
+};
 
 export async function buildFileTree(
-  dir: string,
-  workspaceRoot = dir
+  projectId: string
 ): Promise<WorkspaceNode[]> {
-  const entries = await fs.readdir(dir, {
-    withFileTypes: true,
-  });
+  const [folders, files] = await Promise.all([
+    prisma.folder.findMany({
+      where: {
+        projectId,
+      },
+      select: {
+        id: true,
+        name: true,
+        parentId: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    }),
 
-  const result: WorkspaceNode[] = [];
+    prisma.file.findMany({
+      where: {
+        projectId,
+      },
+      select: {
+        name: true,
+        folderId: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    }),
+  ]);
 
-  for (const entry of entries) {
-    if (IGNORE.has(entry.name)) continue;
+  const folderRecords = folders as FolderRecord[];
+  const fileRecords = files as FileRecord[];
 
-    const fullPath = path.join(dir, entry.name);
+  function buildChildren(
+    parentId: string | null,
+    parentPath = ""
+  ): WorkspaceNode[] {
+    const childFolders = folderRecords.filter(
+      (folder) => folder.parentId === parentId
+    );
 
-    if (entry.isDirectory()) {
-      result.push({
-        name: entry.name,
-        path: path.relative(workspaceRoot, fullPath),
-        type: "folder",
-        children: await buildFileTree(fullPath, workspaceRoot),
-      });
-    } else {
-      result.push({
-        name: entry.name,
-        path: path.relative(workspaceRoot, fullPath),
+    const childFiles = fileRecords.filter(
+      (file) => file.folderId === parentId
+    );
+
+    const folderNodes: WorkspaceNode[] = childFolders.map(
+      (folder) => {
+        const currentPath = parentPath
+          ? `${parentPath}/${folder.name}`
+          : folder.name;
+
+        return {
+          name: folder.name,
+          path: currentPath,
+          type: "folder",
+          children: buildChildren(
+            folder.id,
+            currentPath
+          ),
+        };
+      }
+    );
+
+    const fileNodes: WorkspaceNode[] = childFiles.map(
+      (file) => ({
+        name: file.name,
+        path: parentPath
+          ? `${parentPath}/${file.name}`
+          : file.name,
         type: "file",
-      });
-    }
+      })
+    );
+
+    return [...folderNodes, ...fileNodes].sort(
+      (a, b) => {
+        if (a.type === b.type) {
+          return a.name.localeCompare(b.name);
+        }
+
+        return a.type === "folder" ? -1 : 1;
+      }
+    );
   }
 
-  return result.sort((a, b) => {
-    if (a.type === b.type) return a.name.localeCompare(b.name);
-    return a.type === "folder" ? -1 : 1;
-  });
+  return buildChildren(null);
 }
