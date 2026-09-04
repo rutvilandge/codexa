@@ -20,6 +20,7 @@ model User {
   updatedAt   DateTime        @updatedAt
   projects    Project[]
   memberships ProjectMember[]
+  gitCommits  GitCommit[]
 }
 
 model Project {
@@ -37,6 +38,7 @@ model Project {
   folders       Folder[]
   owner         User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   members       ProjectMember[]
+  gitRepository GitRepository?
 }
 
 model ProjectMember {
@@ -95,6 +97,53 @@ model File {
   updatedAt DateTime @updatedAt
   folder    Folder?  @relation(fields: [folderId], references: [id], onDelete: Cascade)
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model GitRepository {
+  id        String       @id @default(cuid())
+  projectId String       @unique
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  branches  GitBranch[]
+  commits   GitCommit[]
+}
+
+model GitBranch {
+  id           String        @id @default(cuid())
+  repositoryId String
+  name         String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  repository   GitRepository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  commits      GitCommit[]
+
+  @@unique([repositoryId, name])
+}
+
+model GitCommit {
+  id           String         @id @default(cuid())
+  repositoryId String
+  branchId     String
+  hash         String         @unique
+  message      String
+  authorId     String
+  createdAt    DateTime       @default(now())
+  repository   GitRepository  @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  branch       GitBranch      @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  author       User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  files        GitCommitFile[]
+}
+
+model GitCommitFile {
+  id       String    @id @default(cuid())
+  commitId String
+  path     String
+  content  String
+  status   String
+  commit   GitCommit @relation(fields: [commitId], references: [id], onDelete: Cascade)
+
+  @@unique([commitId, path])
 }
 
 enum Role {
