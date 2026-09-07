@@ -113,7 +113,7 @@ A user must have a Codexa account before they can be invited to a project.
 
 ---
 
-# 🛠️ Tech Stack
+## 🛠️ Tech Stack
 
 ## Frontend
 
@@ -159,7 +159,7 @@ A user must have a Codexa account before they can be invited to a project.
 
 ---
 
-# 🏗️ Architecture
+## 🏗️ Architecture
 
 ```mermaid
 flowchart TB
@@ -192,7 +192,7 @@ flowchart TB
 
 ---
 
-# 🔄 Codexa Request Flow
+## 🔄 Codexa Request Flow
 
 ```mermaid
 sequenceDiagram
@@ -229,7 +229,7 @@ sequenceDiagram
 
 ---
 
-# 👤 User Journey
+## 👤 User Journey
 
 ```mermaid
 flowchart LR
@@ -256,7 +256,7 @@ flowchart LR
 
 ---
 
-# 🔐 Authentication Flow
+## 🔐 Authentication Flow
 
 ```mermaid
 flowchart LR
@@ -282,7 +282,7 @@ flowchart LR
 
 ---
 
-# 🤖 AI Architecture
+## 🤖 AI Architecture
 
 Codexa keeps the AI provider on the server side.
 
@@ -328,7 +328,7 @@ This keeps provider credentials outside the frontend bundle.
 
 ---
 
-# 📁 Project Structure
+## 📁 Project Structure
 
 ```text
 codexa/
@@ -378,7 +378,7 @@ codexa/
 
 ---
 
-# 🔌 API Overview
+## 🔌 API Overview
 
 ## Authentication
 
@@ -431,7 +431,7 @@ Git operations are handled through the backend.
 
 ---
 
-# 🗄️ Database
+## 🗄️ Database
 
 Codexa uses PostgreSQL with Prisma ORM.
 
@@ -505,7 +505,7 @@ erDiagram
 
 ---
 
-# 🧬 Prisma Migration Workflow
+## 🧬 Prisma Migration Workflow
 
 After changing the Prisma schema:
 
@@ -533,7 +533,7 @@ npx prisma generate
 
 ---
 
-# 🔧 Environment Variables
+## 🔧 Environment Variables
 
 Create the backend environment file:
 
@@ -558,7 +558,7 @@ For production, use the production database and a strong secret.
 
 ---
 
-# ▶️ Running Codexa Locally
+## ▶️ Running Codexa Locally
 
 ## 1. Clone the project
 
@@ -639,7 +639,7 @@ http://localhost:5173
 
 ---
 
-# 🩺 Health Check
+## 🩺 Health Check
 
 The backend exposes:
 
@@ -658,7 +658,7 @@ Expected response:
 
 ---
 
-# 🔒 Security
+## 🔒 Security
 
 Codexa uses several security measures.
 
@@ -718,7 +718,7 @@ GROQ_API_KEY
 
 ---
 
-# ⚡ Runtime Architecture
+## ⚡ Runtime Architecture
 
 ```mermaid
 flowchart TB
@@ -747,7 +747,7 @@ flowchart TB
 
 ---
 
-# 🧑‍💻 Development Workflow
+## 🧑‍💻 Development Workflow
 
 ```mermaid
 flowchart LR
@@ -772,7 +772,7 @@ flowchart LR
 
 ---
 
-# 🔄 Project Workspace Lifecycle
+## 🔄 Project Workspace Lifecycle
 
 ```mermaid
 flowchart TB
@@ -796,7 +796,7 @@ flowchart TB
 
 ---
 
-# 🧠 AI Coding Workflow
+## 🧠 AI Coding Workflow
 
 ```mermaid
 flowchart LR
@@ -827,7 +827,7 @@ flowchart LR
 
 ---
 
-# 🧩 Workspace Components
+## 🧩 Workspace Components
 
 The workspace is organized around several core areas:
 
@@ -851,7 +851,7 @@ The workspace is organized around several core areas:
 
 ---
 
-# 🧪 Testing Checklist
+## 🧪 Testing Checklist
 
 Before considering a feature complete, verify:
 
@@ -903,81 +903,6 @@ Before considering a feature complete, verify:
 - [ ] Unauthorized users are rejected
 
 ---
-
-# 📊 Current Project Status
-
-| Area | Status |
-|---|---|
-| Landing Page | ✅ Complete |
-| Authentication | ✅ Complete |
-| Session Restoration | ✅ Complete |
-| Dashboard | ✅ Complete |
-| Project Creation | ✅ Complete |
-| Workspace | ✅ Working |
-| File Editing | ✅ Working |
-| File Persistence | ✅ Working |
-| Terminal | ✅ Working |
-| AI Assistant | ✅ Working |
-| Database | ✅ Working |
-| Prisma Migrations | ✅ Up to date |
-| Git Integration | ✅ Implemented |
-| Collaboration | ✅ Implemented |
-| Production Deployment | 🔧 Deployment-ready architecture |
-
----
-
-# 🧰 Useful Commands
-
-## Frontend
-
-```bash
-cd client
-npm run dev
-```
-
-## Backend
-
-```bash
-cd server
-npm run dev
-```
-
-## Prisma
-
-```bash
-npx prisma generate
-npx prisma migrate dev
-npx prisma migrate deploy
-npx prisma migrate status
-```
-
-## Git
-
-```bash
-git status
-git add .
-git commit -m "your message"
-git push
-```
-
-## Build
-
-Frontend:
-
-```bash
-cd client
-npm run build
-```
-
-Backend:
-
-```bash
-cd server
-npm run build
-```
-
----
-
 # 🚀 Production Architecture
 
 Codexa is structured so the frontend and backend can be deployed independently.
@@ -1018,7 +943,7 @@ NODE_ENV=production
 
 ---
 
-# 🌐 Client and Server Responsibilities
+## 🌐 Client and Server Responsibilities
 
 ## Client
 
@@ -1062,7 +987,7 @@ SERVER
 
 ---
 
-# 🎯 Why Codexa?
+## 🎯 Why Codexa?
 
 Codexa combines several developer tools into one focused environment.
 
@@ -1100,7 +1025,7 @@ Codexa brings the workflow together:
 
 ---
 
-# 📚 Learning Goals
+## 📚 Learning Goals
 
 Codexa was built to provide practical experience with:
 
@@ -1124,7 +1049,7 @@ Codexa was built to provide practical experience with:
 
 ---
 
-# 🏆 Project Highlights
+## 🏆 Project Highlights
 
 ### Full-stack architecture
 
@@ -1152,7 +1077,7 @@ The workspace is designed around the actual coding workflow rather than a generi
 
 ---
 
-# 👩‍💻 Author
+## 👩‍💻 Author
 
 **Rutvi Landge**
 
@@ -1160,7 +1085,7 @@ Codexa was built as a full-stack developer project to explore modern web develop
 
 ---
 
-# 📄 License
+## 📄 License
 
 This project is currently intended as a personal/portfolio project.
 
